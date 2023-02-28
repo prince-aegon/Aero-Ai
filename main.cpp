@@ -23,8 +23,8 @@ typedef long long int ll;
 const int inf = 1e9;
 const ll N = 1000000000000L;
 
-map<string, double> sections;
-
+map<string, pair<double, pair<int, int>>> sections;
+vector<int> shortestPath;
 class Runway
 {
 public:
@@ -46,6 +46,118 @@ public:
     string name;
     double vel;
 };
+
+class Graph
+{
+    int V;
+    vector<int> *adj;
+
+public:
+    Graph(int V);
+    void addEdge(int v, int w, int weight);
+
+    double findShortestPath(int s, int d);
+
+    int printShortestPath(int parent[], int s, int d);
+};
+
+Graph::Graph(int V)
+{
+    this->V = V;
+    adj = new vector<int>[2 * V];
+}
+
+void Graph::addEdge(int v, int w, int weight)
+{
+    // split all edges of weight 2 into two
+    // edges of weight 1 each. The intermediate
+    // vertex number is maximum vertex number + 1,
+    // that is V.
+    if (weight == 2)
+    {
+        adj[v].push_back(v + V);
+        adj[v + V].push_back(w);
+    }
+    else                     // Weight is 1
+        adj[v].push_back(w); // Add w to v’s list.
+}
+
+// To print the shortest path stored in parent[]
+int Graph::printShortestPath(int parent[], int s, int d)
+{
+    static int level = 0;
+
+    // If we reached root of shortest path tree
+    if (parent[s] == -1)
+    {
+        // cout << "Shortest Path between " << s << " and "
+        //      << d << " is " << s << " ";
+        shortestPath.push_back(s);
+        return level;
+    }
+
+    printShortestPath(parent, parent[s], d);
+
+    level++;
+    if (s < V)
+    {
+        // cout << s << " ";
+        shortestPath.push_back(s);
+    }
+
+    return level;
+}
+
+// This function mainly does BFS and prints the
+// shortest path from src to dest. It is assumed
+// that weight of every edge is 1
+double Graph::findShortestPath(int src, int dest)
+{
+    // Mark all the vertices as not visited
+    bool *visited = new bool[2 * V];
+    int *parent = new int[2 * V];
+
+    // Initialize parent[] and visited[]
+    for (int i = 0; i < 2 * V; i++)
+    {
+        visited[i] = false;
+        parent[i] = -1;
+    }
+
+    // Create a queue for BFS
+    queue<int> queue;
+
+    // Mark the current node as visited and enqueue it
+    visited[src] = true;
+    queue.push(src);
+
+    // 'i' will be used to get all adjacent vertices of a vertex
+    vector<int>::iterator i;
+
+    while (!queue.empty())
+    {
+        // Dequeue a vertex from queue and print it
+        int s = queue.front();
+
+        if (s == dest)
+            return printShortestPath(parent, s, dest);
+
+        queue.pop();
+
+        // Get all adjacent vertices of the dequeued vertex s
+        // If a adjacent has not been visited, then mark it
+        // visited and enqueue it
+        for (i = adj[s].begin(); i != adj[s].end(); ++i)
+        {
+            if (!visited[*i])
+            {
+                visited[*i] = true;
+                queue.push(*i);
+                parent[*i] = s;
+            }
+        }
+    }
+}
 
 std::vector<std::string> readCSVRow(const std::string &row)
 {
@@ -214,14 +326,29 @@ int main()
         {
             value = stod(word);
 
-            sections[tag] = value;
+            sections[tag].first = value;
         }
+        getline(ss, word, ',');
+        if (row != 0)
+        {
+            value = stod(word);
+
+            sections[tag].second.first = value;
+        }
+        getline(ss, word, ',');
+        if (row != 0)
+        {
+            value = stod(word);
+
+            sections[tag].second.second = value;
+        }
+
         row++;
     }
-    // for (auto const &x : sections)
-    // {
-    //     cout << x.first << " " << x.second << endl;
-    // }
+    for (auto const &x : sections)
+    {
+        cout << x.first << " (" << x.second.first << " ), ( " << x.second.second.first << ", " << x.second.second.second << ")" << endl;
+    }
     fin.close();
 
     // capture the aircraft data
@@ -273,22 +400,52 @@ int main()
 
     // assigning a demo path
 
-    queue<string> q_path;
-    q_path.push("N2");
-    q_path.push("T");
-    q_path.push("N4");
-    q_path.push("N13A");
+    // queue<string> q_path;
+    // q_path.push("N2");
+    // q_path.push("T");
+    // q_path.push("N4");
 
-    Aircraft curr_aircraft = aircrafts[2];
-    double total_time = 0;
-    while (!q_path.empty())
+    // Aircraft curr_aircraft = aircrafts[2];
+    // double total_time = 0;
+    // while (!q_path.empty())
+    // {
+    //     string curr = q_path.front();
+    //     q_path.pop();
+    //     double dist = sections[curr];
+    //     total_time += dist * curr_aircraft.vel;
+    // }
+    // cout << curr_aircraft.name << " took " << total_time << " minutes" << endl;
+
+    // creating graph
+    int v = 22;
+    Graph paths(v);
+    for (auto const &x : sections)
     {
-        string curr = q_path.front();
-        q_path.pop();
-        double dist = sections[curr];
-        total_time += dist * curr_aircraft.vel;
+        paths.addEdge(x.second.second.first, x.second.second.second, x.second.first);
     }
-    cout << curr_aircraft.name << " took " << total_time << " minutes" << endl;
+    int src = 0, des = 21;
+    double ans = paths.findShortestPath(src, des);
+    ans = 0;
+    Aircraft curr_aircraft = aircrafts[2];
+    cout << endl;
 
+    for (int i = 0; i < shortestPath.size(); i++)
+    {
+        for (auto const &x : sections)
+        {
+            if ((shortestPath[i] == x.second.second.first && shortestPath[i + 1] == x.second.second.second) ||
+                (shortestPath[i] == x.second.second.second && shortestPath[i + 1] == x.second.second.first))
+            {
+                ans += x.second.first;
+                break;
+            }
+        }
+    }
+    cout << "Total time taken by " << curr_aircraft.name << " to go from " << src << " to " << des << " is : " << curr_aircraft.vel * ans << endl;
+    for (int i = 0; i < shortestPath.size(); i++)
+    {
+        cout << shortestPath[i] << " ";
+    }
+    cout << endl;
     return 0;
 }
