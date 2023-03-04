@@ -7,6 +7,7 @@
 #include <sstream>
 #include <map>
 #include <queue>
+#include <unistd.h>
 
 #define REP(i, a, b) for (int i = (a); i <= (b); i++)
 #define REP_Dec(i, a, b) for (int i = (a); i >= (b); i--)
@@ -426,7 +427,7 @@ int main()
     int src = 0, des = 21;
     double ans = paths.findShortestPath(src, des);
     ans = 0;
-    Aircraft curr_aircraft = aircrafts[2];
+    Aircraft curr_aircraft = aircrafts[1];
     cout << endl;
 
     for (int i = 0; i < shortestPath.size(); i++)
@@ -447,5 +448,19 @@ int main()
         cout << shortestPath[i] << " ";
     }
     cout << endl;
+
+    int counter = 0, curr_time = 0;
+
+    while (true)
+    {
+        usleep(1000000);
+        curr_time++;
+        counter++;
+        cout << "Current : " << counter << endl;
+        if (curr_time == 10)
+        {
+            cout << "Plane arriving" << endl;
+        }
+    }
     return 0;
 }
